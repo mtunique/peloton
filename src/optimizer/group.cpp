@@ -80,55 +80,26 @@ const std::string Group::GetInfo(int num_indent) const {
     os << StringUtil::Indent(num_indent)
        << "GroupID: " << GetID() << std::endl;
 
-    if (logical_expressions_.size() > 0)
+    if (!logical_expressions_.empty())
         os << StringUtil::Indent(num_indent + 2)
            << "logical_expressions_: \n";
     
-    for (auto expr : logical_expressions_) {
-        os << StringUtil::Indent(num_indent + 4)
-           << expr->Op().GetName() << std::endl;
-        const std::vector<GroupID> ChildGroupIDs = expr->GetChildGroupIDs();
-        if (ChildGroupIDs.size() > 0) {        
-            os << StringUtil::Indent(num_indent + 6)
-               << "ChildGroupIDs: ";
-            for (auto childGroupID : ChildGroupIDs)
-                os << childGroupID << " ";
-            os << std::endl;
-        }
+    for (const auto& expr : logical_expressions_) {
+      expr->GetInfo(num_indent + 4, os);
     }
 
-    if (physical_expressions_.size() > 0)
+    if (!physical_expressions_.empty())
         os << StringUtil::Indent(num_indent + 2)
            << "physical_expressions_: \n";
-    for (auto expr : physical_expressions_) {
-        os << StringUtil::Indent(num_indent + 4)
-           << expr->Op().GetName() << std::endl;
-        const std::vector<GroupID> ChildGroupIDs = expr->GetChildGroupIDs();
-        if (ChildGroupIDs.size() > 0) {
-            os << StringUtil::Indent(num_indent + 6)
-               << "ChildGroupIDs: ";
-            for (auto childGroupID : ChildGroupIDs) 
-                os << childGroupID << " ";
-            os << std::endl;
-        }
-
+    for (const auto& expr : physical_expressions_) {
+      expr->GetInfo(num_indent + 4, os);
     }
 
-    if (enforced_exprs_.size() > 0)
+    if (!enforced_exprs_.empty())
         os << StringUtil::Indent(num_indent + 2)
            << "enforced_exprs_: \n";
-    for (auto expr : enforced_exprs_) {
-        os << StringUtil::Indent(num_indent + 4)
-           << expr->Op().GetName() << std::endl;
-        const std::vector<GroupID> ChildGroupIDs = expr->GetChildGroupIDs();
-        if (ChildGroupIDs.size() > 0) {
-            os << StringUtil::Indent(num_indent + 6)
-               << "ChildGroupIDs: \n";
-            for (auto childGroupID : ChildGroupIDs) {
-                os << childGroupID << " ";
-            }
-            os << std::endl;
-        }
+    for (const auto& expr : enforced_exprs_) {
+      expr->GetInfo(num_indent + 4, os);
     }
 
     return os.str();
@@ -136,7 +107,7 @@ const std::string Group::GetInfo(int num_indent) const {
 
 const std::string Group::GetInfo() const {
     std::ostringstream os;
-    os << GetInfo(0);
+    os << std::endl << GetInfo(0);
     return os.str();
 }
 

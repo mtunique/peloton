@@ -166,6 +166,43 @@ TEST_F(OptimizerTests, HashJoinTest) {
                 ->GetTableCount(),
             expected_table_count);
 
+  traffic_cop.SetTcopTxnState(txn);
+  LOG_INFO("Creating table");
+  LOG_INFO("Query: CREATE TABLE table_c(cid INT PRIMARY KEY,value INT);");
+  statement.reset(new Statement(
+      "CREATE", "CREATE TABLE table_c(cid INT PRIMARY KEY,value INT);"));
+
+  create_stmt = peloton_parser.BuildParseTree(
+      "CREATE TABLE table_c(cid INT PRIMARY KEY,value INT);");
+
+  bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
+  bind_node_visitor.BindNameToNode(create_stmt->GetStatement(0));
+
+  statement->SetPlanTree(optimizer.BuildPelotonPlanTree(create_stmt, txn));
+
+  result_format = std::vector<int>(statement->GetTupleDescriptor().size(), 0);
+  TestingSQLUtil::counter_.store(1);
+  status = traffic_cop.ExecuteHelper(statement->GetPlanTree(), params, result,
+                                     result_format);
+  if (traffic_cop.GetQueuing()) {
+    TestingSQLUtil::ContinueAfterComplete();
+    traffic_cop.ExecuteStatementPlanGetResult();
+    status = traffic_cop.p_status_;
+    traffic_cop.SetQueuing(false);
+  }
+  LOG_INFO("Statement executed. Result: %s",
+           ResultTypeToString(status.m_result).c_str());
+  LOG_INFO("Table Created");
+  traffic_cop.CommitQueryHelper();
+
+  // Account for table created.
+  expected_table_count++;
+  txn = txn_manager.BeginTransaction();
+  EXPECT_EQ(catalog::Catalog::GetInstance()
+                ->GetDatabaseWithName(txn, DEFAULT_DB_NAME)
+                ->GetTableCount(),
+            expected_table_count);
+
   // Inserting a tuple to table_a
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Inserting a tuple...");
@@ -226,15 +263,45 @@ TEST_F(OptimizerTests, HashJoinTest) {
   LOG_INFO("Tuple inserted to table_b!");
   traffic_cop.CommitQueryHelper();
 
+  // Inserting a tuple to table_c
+  txn = txn_manager.BeginTransaction();
+  traffic_cop.SetTcopTxnState(txn);
+  LOG_INFO("Inserting a tuple...");
+  LOG_INFO("Query: INSERT INTO table_c(cid, value) VALUES (1,2);");
+  statement.reset(new Statement(
+      "INSERT", "INSERT INTO table_c(cid, value) VALUES (1, 2);"));
+
+  insert_stmt = peloton_parser.BuildParseTree(
+      "INSERT INTO table_c(cid, value) VALUES (1, 2);");
+  bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
+  bind_node_visitor.BindNameToNode(insert_stmt->GetStatement(0));
+
+  statement->SetPlanTree(optimizer.BuildPelotonPlanTree(insert_stmt, txn));
+
+  result_format = std::vector<int>(statement->GetTupleDescriptor().size(), 0);
+  TestingSQLUtil::counter_.store(1);
+  status = traffic_cop.ExecuteHelper(statement->GetPlanTree(), params, result,
+                                     result_format);
+  if (traffic_cop.GetQueuing()) {
+    TestingSQLUtil::ContinueAfterComplete();
+    traffic_cop.ExecuteStatementPlanGetResult();
+    status = traffic_cop.p_status_;
+    traffic_cop.SetQueuing(false);
+  }
+  LOG_INFO("Statement executed. Result: %s",
+           ResultTypeToString(status.m_result).c_str());
+  LOG_INFO("Tuple inserted to table_c!");
+  traffic_cop.CommitQueryHelper();
+
   txn = txn_manager.BeginTransaction();
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Join ...");
-  LOG_INFO("Query: SELECT * FROM table_a INNER JOIN table_b ON aid = bid;");
+  LOG_INFO("Query: SELECT * FROM table_a, table_b, table_c where aid = bid and aid = cid;");
   statement.reset(new Statement(
-      "SELECT", "SELECT * FROM table_a INNER JOIN table_b ON aid = bid;"));
+      "SELECT", "SELECT * FROM table_a, table_b, table_c where aid = bid and aid = cid;"));
 
   auto select_stmt = peloton_parser.BuildParseTree(
-      "SELECT * FROM table_a INNER JOIN table_b ON aid = bid;");
+      "SELECT * FROM table_a, table_b, table_c where aid = bid and aid = cid;");
   bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(select_stmt->GetStatement(0));
 

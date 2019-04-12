@@ -115,7 +115,7 @@ class Group : public Printable {
   GroupID id_;
   // All the table alias this group represents. This will not change once create
   // TODO(boweic) Do not use string, store table alias id
-  std::unordered_set<std::string> table_aliases_;
+  std::unordered_set<std::string> table_aliases_; // todo mt
   std::unordered_map<std::shared_ptr<PropertySet>,
                      std::tuple<double, GroupExpression *>, PropSetPtrHash,
                      PropSetPtrEq> lowest_cost_expressions_;

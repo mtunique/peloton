@@ -88,7 +88,7 @@ class Memo {
 
   // The group owns the group expressions, not the memo
   std::unordered_set<GroupExpression*, GExprPtrHash, GExprPtrEq>
-      group_expressions_;
+      group_expressions_; // todo mt
   std::vector<std::unique_ptr<Group>> groups_;
   size_t rule_set_size_;
 };

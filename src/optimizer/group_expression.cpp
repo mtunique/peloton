@@ -96,5 +96,20 @@ bool GroupExpression::HasRuleExplored(Rule *rule) {
   return rule_mask_.test(rule->GetRuleIdx());
 }
 
+
+const void GroupExpression::GetInfo(int num_indent, std::ostringstream& os) const {
+
+  os << StringUtil::Indent(num_indent)
+     << Op().GetName() << " in group: " << group_id << std::endl;
+  const std::vector<GroupID> ChildGroupIDs = GetChildGroupIDs();
+  if (ChildGroupIDs.size() > 0) {
+    os << StringUtil::Indent(num_indent + 2)
+       << "ChildGroupIDs: ";
+    for (auto childGroupID : ChildGroupIDs)
+      os << childGroupID << " ";
+    os << std::endl;
+  }
+}
+
 }  // namespace optimizer
 }  // namespace peloton

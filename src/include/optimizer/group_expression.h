@@ -73,6 +73,15 @@ class GroupExpression {
 
   inline size_t GetChildrenGroupsSize() const { return child_groups.size(); }
 
+  const void GetInfo(int num_indent, std::ostringstream& os) const;
+
+  const std::string GetInfo() const {
+    std::ostringstream os;
+    os << std::endl;
+    GetInfo(0, os);
+    return os.str();
+  }
+
  private:
   GroupID group_id;
   Operator op;
