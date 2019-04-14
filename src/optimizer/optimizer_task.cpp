@@ -152,7 +152,7 @@ void ExploreExpression::execute() {
 
   // Apply rule
   for (auto &r : valid_rules) {
-    PushTask(new ApplyRule(group_expr_, r.rule, context_, true));
+    PushTask(new ApplyRule(group_expr_, r.rule, context_, this->GetId(), true));
     int child_group_idx = 0;
     for (auto &child_pattern : r.rule->GetMatchPattern()->Children()) {
       // Only need to explore non-leaf children before applying rule to the
@@ -220,8 +220,8 @@ void DeriveStats::execute() {
   // First do a top-down pass to get stats for required columns, then do a
   // bottom-up pass to calculate the stats
   ChildStatsDeriver deriver;
-  auto children_required_stats = deriver.DeriveInputStats(
-      gexpr_, required_cols_, &context_->metadata->memo);
+    auto children_required_stats = deriver.DeriveInputStats(
+        gexpr_, required_cols_, &context_->metadata->memo);
   bool derive_children = false;
   // If we haven't got enough stats to compute the current stats, derive them
   // from the child first
