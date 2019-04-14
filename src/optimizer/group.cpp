@@ -75,39 +75,39 @@ std::shared_ptr<ColumnStats> Group::GetStats(std::string column_name) {
   return stats_[column_name];
 }
 
-const std::string Group::GetInfo(int num_indent) const {
+const std::string Group::GetInfo(int num_indent, std::shared_ptr<OptimizeContext> context) const {
     std::ostringstream os;
     os << StringUtil::Indent(num_indent)
-       << "GroupID: " << GetID() << std::endl;
+       << "GroupID: " << GetID() << " " << GetGroupStr() << std::endl;
 
     if (!logical_expressions_.empty())
         os << StringUtil::Indent(num_indent + 2)
            << "logical_expressions_: \n";
     
     for (const auto& expr : logical_expressions_) {
-      expr->GetInfo(num_indent + 4, os);
+      expr->GetInfo(num_indent + 4, os, context);
     }
 
     if (!physical_expressions_.empty())
         os << StringUtil::Indent(num_indent + 2)
            << "physical_expressions_: \n";
     for (const auto& expr : physical_expressions_) {
-      expr->GetInfo(num_indent + 4, os);
+      expr->GetInfo(num_indent + 4, os, context);
     }
 
     if (!enforced_exprs_.empty())
         os << StringUtil::Indent(num_indent + 2)
            << "enforced_exprs_: \n";
     for (const auto& expr : enforced_exprs_) {
-      expr->GetInfo(num_indent + 4, os);
+      expr->GetInfo(num_indent + 4, os, context);
     }
 
     return os.str();
 }
 
-const std::string Group::GetInfo() const {
+const std::string Group::GetInfo(std::shared_ptr<OptimizeContext> context) const {
     std::ostringstream os;
-    os << std::endl << GetInfo(0);
+    os << std::endl << GetInfo(0, context);
     return os.str();
 }
 

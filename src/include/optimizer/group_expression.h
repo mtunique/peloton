@@ -16,6 +16,7 @@
 #include "optimizer/stats/stats.h"
 #include "optimizer/util.h"
 #include "optimizer/property_set.h"
+#include "optimizer/optimize_context.h"
 #include "common/internal_types.h"
 
 #include <map>
@@ -73,12 +74,12 @@ class GroupExpression {
 
   inline size_t GetChildrenGroupsSize() const { return child_groups.size(); }
 
-  const void GetInfo(int num_indent, std::ostringstream& os) const;
+  const void GetInfo(int num_indent, std::ostringstream& os, std::shared_ptr<OptimizeContext> context) const;
 
-  const std::string GetInfo() const {
+  const std::string GetInfo(std::shared_ptr<OptimizeContext> context) const {
     std::ostringstream os;
     os << std::endl;
-    GetInfo(0, os);
+    GetInfo(0, os, context);
     return os.str();
   }
 

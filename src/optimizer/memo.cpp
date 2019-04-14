@@ -74,7 +74,7 @@ const std::string Memo::GetInfo(int num_indent) const {
        << "rule_set_size_: " << rule_set_size_ << std::endl;
     
     for (auto &group : groups_) {
-        auto groupInfo = group->GetInfo(num_indent + 2);
+        auto groupInfo = "";//group->GetInfo(num_indent + 2);
         os << groupInfo;
     }
     return os.str();

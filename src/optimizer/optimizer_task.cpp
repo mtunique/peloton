@@ -60,7 +60,7 @@ RuleSet &OptimizerTask::GetRuleSet() const {
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::execute() {
   LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
-  LOG_DEBUG("OptimizeGroup::Execute() group %d info %s", group_->GetID(), group_->GetInfo().c_str());
+  LOG_DEBUG("OptimizeGroup::Execute() group %d info %s", group_->GetID(), group_->GetInfo(context_).c_str());
   if (group_->GetCostLB() > context_->cost_upper_bound ||  // Cost LB > Cost UB
       group_->GetBestExpression(context_->required_prop) !=
           nullptr)  // Has optimized given the context
@@ -99,7 +99,7 @@ void OptimizeExpression::execute() {
 
   std::sort(valid_rules.begin(), valid_rules.end());
   LOG_DEBUG("OptimizeExpression::execute() gexpr %s op %s, valid rules : %lu",
-            group_expr_->GetInfo().c_str(), group_expr_->Op().GetName().c_str(), valid_rules.size());
+            group_expr_->GetInfo(context_).c_str(), group_expr_->Op().GetName().c_str(), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
     PushTask(new ApplyRule(group_expr_, r.rule, context_, this->GetId()));
@@ -125,7 +125,7 @@ void OptimizeExpression::execute() {
 void ExploreGroup::execute() {
   if (group_->HasExplored()) return;
   LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
-  LOG_DEBUG("ExploreGroup::execute() group %s", group_->GetInfo().c_str());
+  LOG_DEBUG("ExploreGroup::execute() group %s", group_->GetInfo(context_).c_str());
 
   for (auto &logical_expr : group_->GetLogicalExpressions()) {
     PushTask(new ExploreExpression(logical_expr.get(), context_, this->GetId()));
@@ -141,7 +141,7 @@ void ExploreGroup::execute() {
 //===--------------------------------------------------------------------===//
 void ExploreExpression::execute() {
   LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
-  LOG_DEBUG("ExploreExpression::execute() gexpr %s", group_expr_->GetInfo().c_str());
+  LOG_DEBUG("ExploreExpression::execute() gexpr %s", group_expr_->GetInfo(context_).c_str());
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -174,7 +174,7 @@ void ExploreExpression::execute() {
 //===--------------------------------------------------------------------===//
 void ApplyRule::execute() {
   LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
-  LOG_DEBUG("ApplyRule::execute() gexpr %s for rule: %s\n", group_expr_->GetInfo().c_str(), RULE_TYPES[rule_->GetRuleIdx()].c_str());
+  LOG_DEBUG("ApplyRule::execute() gexpr %s for rule: %s\n", group_expr_->GetInfo(context_).c_str(), RULE_TYPES[rule_->GetRuleIdx()].c_str());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
   GroupExprBindingIterator iterator(GetMemo(), group_expr_,
@@ -266,7 +266,7 @@ void DeriveStats::execute() {
 void OptimizeInputs::execute() {
   // Init logic: only run once per task
   LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
-  LOG_DEBUG("OptimizeInputs::execute() gexpr %s", group_expr_->GetInfo().c_str());
+  LOG_DEBUG("OptimizeInputs::execute() gexpr %s", group_expr_->GetInfo(context_).c_str());
   if (cur_child_idx_ == -1) {
     // TODO(patrick):
     // 1. We can init input cost using non-zero value for pruning
@@ -280,7 +280,7 @@ void OptimizeInputs::execute() {
     // Derive output and input properties
     ChildPropertyDeriver prop_deriver;
     output_input_properties_ = prop_deriver.GetProperties(
-        group_expr_, context_->required_prop, &context_->metadata->memo);  // mt: add exchange 的部分逻辑
+        group_expr_, context_->required_prop, &context_->metadata->memo);  // mt: add exchange 的部分逻辑 拆开实现
     cur_child_idx_ = 0;
 
     // TODO: If later on we support properties that may not be enforced in some
@@ -352,7 +352,7 @@ void OptimizeInputs::execute() {
       // are added, we should
       // add some heuristics to derive the optimal enforce order or perform a
       // cost-based full enumeration.
-      for (auto &prop : context_->required_prop->Properties()) {
+      for (auto &prop : context_->required_prop->Properties()) { // match 的过程
         if (!output_prop->HasProperty(*prop)) {
           auto enforced_expr =
               prop_enforcer.EnforceProperty(group_expr_, prop.get());

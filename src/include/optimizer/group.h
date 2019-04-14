@@ -20,6 +20,7 @@
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
 #include "optimizer/stats/column_stats.h"
+#include "optimizer/optimize_context.h"
 
 namespace peloton {
 namespace optimizer {
@@ -92,8 +93,17 @@ class Group : public Printable {
 
   inline GroupID GetID() const { return id_; }
 
-  const std::string GetInfo(int num_indent) const;
-  const std::string GetInfo() const override;
+  const std::string GetGroupStr() const {
+    std::ostringstream os;
+    for (const auto& table : table_aliases_) {
+      os << table << "|";
+    }
+    return os.str();
+  }
+
+  const std::string GetInfo(int num_indent, std::shared_ptr<OptimizeContext> context) const;
+  const std::string GetInfo(std::shared_ptr<OptimizeContext> context) const;
+  const std::string GetInfo() const override { return "";};
 
   // This is called in rewrite phase to erase the only logical expression in the
   // group

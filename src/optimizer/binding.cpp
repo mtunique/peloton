@@ -53,12 +53,13 @@ bool GroupBindingIterator::HasNext() {
       current_iterator_.reset(new GroupExprBindingIterator(
           memo_,
           target_group_->GetLogicalExpressions()[current_item_index_].get(),
-          pattern_));
+          pattern_)); // 下一个 group expression
 
       if (current_iterator_->HasNext()) {
-        break;
+        break; // 因为有所以 下一个是匹配上的
       }
 
+      // 没匹配上
       current_iterator_.reset(nullptr);
       current_item_index_++;
     }
@@ -87,6 +88,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(
       has_next_(false),
       current_binding_(std::make_shared<OperatorExpression>(gexpr->Op())) {
   if (gexpr->Op().GetType() != pattern->Type()) {
+    // 没匹配上
     return;
   }
 
@@ -105,6 +107,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(
   // Find all bindings for children
   children_bindings_.resize(child_groups.size(), {});
   children_bindings_pos_.resize(child_groups.size(), 0);
+  // 拿到每个 children 的 bindings 放到 children_bingds
   for (size_t i = 0; i < child_groups.size(); ++i) {
     // Try to find a match in the given group
     std::vector<std::shared_ptr<OperatorExpression>> &child_bindings =
@@ -133,6 +136,7 @@ bool GroupExprBindingIterator::HasNext() {
     return true;
   }
 
+  // 组合出
   if (has_next_) {
     // The first child to be modified
     int first_modified_idx = children_bindings_pos_.size() - 1;
@@ -140,7 +144,7 @@ bool GroupExprBindingIterator::HasNext() {
       const std::vector<std::shared_ptr<OperatorExpression>> &child_binding =
           children_bindings_[first_modified_idx];
 
-      // Try to increment idx from the back
+      // Try to increment idx from the back 先从第1个开始了 最后才是第0个
       size_t new_pos = ++children_bindings_pos_[first_modified_idx];
       if (new_pos < child_binding.size()) {
         break;
@@ -162,7 +166,7 @@ bool GroupExprBindingIterator::HasNext() {
       for (size_t offset = first_modified_idx;
            offset < children_bindings_pos_.size(); ++offset) {
         const std::vector<std::shared_ptr<OperatorExpression>> &child_binding =
-            children_bindings_[offset];
+            children_bindings_[offset]; // 第 offset 个 children 的 bindings
         std::shared_ptr<OperatorExpression> binding =
             child_binding[children_bindings_pos_[offset]];
         current_binding_->PushChild(binding);

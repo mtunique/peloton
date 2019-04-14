@@ -14,6 +14,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/group.h"
 #include "optimizer/rule.h"
+#include "optimizer/optimizer_metadata.h"
 
 namespace peloton {
 namespace optimizer {
@@ -97,16 +98,16 @@ bool GroupExpression::HasRuleExplored(Rule *rule) {
 }
 
 
-const void GroupExpression::GetInfo(int num_indent, std::ostringstream& os) const {
+const void GroupExpression::GetInfo(int num_indent, std::ostringstream& os, std::shared_ptr<OptimizeContext> context) const {
 
   os << StringUtil::Indent(num_indent)
-     << Op().GetName() << " in group: " << group_id << std::endl;
+     << Op().GetName() << " in group: " << group_id << " " << context->metadata->memo.GetGroupByID(group_id)->GetGroupStr() << std::endl;
   const std::vector<GroupID> ChildGroupIDs = GetChildGroupIDs();
   if (ChildGroupIDs.size() > 0) {
     os << StringUtil::Indent(num_indent + 2)
        << "ChildGroupIDs: ";
     for (auto childGroupID : ChildGroupIDs)
-      os << childGroupID << " ";
+      os << childGroupID << " " << context->metadata->memo.GetGroupByID(childGroupID)->GetGroupStr() << " ";
     os << std::endl;
   }
 }

@@ -88,15 +88,15 @@ TEST_F(OptimizerTests, HashJoinTest) {
   txn = txn_manager.BeginTransaction();
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Creating table");
-  LOG_INFO("Query: CREATE TABLE table_a(aid INT PRIMARY KEY,value INT);");
+  LOG_INFO("Query: CREATE TABLE a(aid INT PRIMARY KEY,value INT);");
   std::unique_ptr<Statement> statement;
   statement.reset(new Statement(
-      "CREATE", "CREATE TABLE table_a(aid INT PRIMARY KEY,value INT);"));
+      "CREATE", "CREATE TABLE a(aid INT PRIMARY KEY,value INT);"));
 
   auto &peloton_parser = parser::PostgresParser::GetInstance();
 
   auto create_stmt = peloton_parser.BuildParseTree(
-      "CREATE TABLE table_a(aid INT PRIMARY KEY,value INT);");
+      "CREATE TABLE a(aid INT PRIMARY KEY,value INT);");
   auto bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(create_stmt->GetStatement(0));
 
@@ -122,21 +122,21 @@ TEST_F(OptimizerTests, HashJoinTest) {
 
   // NOTE: everytime we create a database, there will be 9 catalog tables inside
   // Additionally, we also created a table for the test.
-  oid_t expected_table_count = CATALOG_TABLES_COUNT + 1;
+  oid_t expected_count = CATALOG_TABLES_COUNT + 1;
   txn = txn_manager.BeginTransaction();
   EXPECT_EQ(catalog::Catalog::GetInstance()
                 ->GetDatabaseWithName(txn, DEFAULT_DB_NAME)
                 ->GetTableCount(),
-            expected_table_count);
+            expected_count);
 
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Creating table");
-  LOG_INFO("Query: CREATE TABLE table_b(bid INT PRIMARY KEY,value INT);");
+  LOG_INFO("Query: CREATE TABLE b(bid INT PRIMARY KEY,value INT);");
   statement.reset(new Statement(
-      "CREATE", "CREATE TABLE table_b(bid INT PRIMARY KEY,value INT);"));
+      "CREATE", "CREATE TABLE b(bid INT PRIMARY KEY,value INT);"));
 
   create_stmt = peloton_parser.BuildParseTree(
-      "CREATE TABLE table_b(bid INT PRIMARY KEY,value INT);");
+      "CREATE TABLE b(bid INT PRIMARY KEY,value INT);");
 
   bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(create_stmt->GetStatement(0));
@@ -159,21 +159,21 @@ TEST_F(OptimizerTests, HashJoinTest) {
   traffic_cop.CommitQueryHelper();
 
   // Account for table created.
-  expected_table_count++;
+  expected_count++;
   txn = txn_manager.BeginTransaction();
   EXPECT_EQ(catalog::Catalog::GetInstance()
                 ->GetDatabaseWithName(txn, DEFAULT_DB_NAME)
                 ->GetTableCount(),
-            expected_table_count);
+            expected_count);
 
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Creating table");
-  LOG_INFO("Query: CREATE TABLE table_c(cid INT PRIMARY KEY,value INT);");
+  LOG_INFO("Query: CREATE TABLE c(cid INT PRIMARY KEY,value INT);");
   statement.reset(new Statement(
-      "CREATE", "CREATE TABLE table_c(cid INT PRIMARY KEY,value INT);"));
+      "CREATE", "CREATE TABLE c(cid INT PRIMARY KEY,value INT);"));
 
   create_stmt = peloton_parser.BuildParseTree(
-      "CREATE TABLE table_c(cid INT PRIMARY KEY,value INT);");
+      "CREATE TABLE c(cid INT PRIMARY KEY,value INT);");
 
   bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(create_stmt->GetStatement(0));
@@ -196,22 +196,22 @@ TEST_F(OptimizerTests, HashJoinTest) {
   traffic_cop.CommitQueryHelper();
 
   // Account for table created.
-  expected_table_count++;
+  expected_count++;
   txn = txn_manager.BeginTransaction();
   EXPECT_EQ(catalog::Catalog::GetInstance()
                 ->GetDatabaseWithName(txn, DEFAULT_DB_NAME)
                 ->GetTableCount(),
-            expected_table_count);
+            expected_count);
 
-  // Inserting a tuple to table_a
+  // Inserting a tuple to a
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Inserting a tuple...");
-  LOG_INFO("Query: INSERT INTO table_a(aid, value) VALUES (1,1);");
+  LOG_INFO("Query: INSERT INTO a(aid, value) VALUES (1,1);");
   statement.reset(new Statement(
-      "INSERT", "INSERT INTO table_a(aid, value) VALUES (1, 1);"));
+      "INSERT", "INSERT INTO a(aid, value) VALUES (1, 1);"));
 
   auto insert_stmt = peloton_parser.BuildParseTree(
-      "INSERT INTO table_a(aid, value) VALUES (1, 1);");
+      "INSERT INTO a(aid, value) VALUES (1, 1);");
 
   bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(insert_stmt->GetStatement(0));
@@ -230,19 +230,19 @@ TEST_F(OptimizerTests, HashJoinTest) {
   }
   LOG_INFO("Statement executed. Result: %s",
            ResultTypeToString(status.m_result).c_str());
-  LOG_INFO("Tuple inserted to table_a!");
+  LOG_INFO("Tuple inserted to a!");
   traffic_cop.CommitQueryHelper();
 
-  // Inserting a tuple to table_b
+  // Inserting a tuple to b
   txn = txn_manager.BeginTransaction();
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Inserting a tuple...");
-  LOG_INFO("Query: INSERT INTO table_b(bid, value) VALUES (1,2);");
+  LOG_INFO("Query: INSERT INTO b(bid, value) VALUES (1,2);");
   statement.reset(new Statement(
-      "INSERT", "INSERT INTO table_b(bid, value) VALUES (1, 2);"));
+      "INSERT", "INSERT INTO b(bid, value) VALUES (1, 2);"));
 
   insert_stmt = peloton_parser.BuildParseTree(
-      "INSERT INTO table_b(bid, value) VALUES (1, 2);");
+      "INSERT INTO b(bid, value) VALUES (1, 2);");
   bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(insert_stmt->GetStatement(0));
 
@@ -260,19 +260,19 @@ TEST_F(OptimizerTests, HashJoinTest) {
   }
   LOG_INFO("Statement executed. Result: %s",
            ResultTypeToString(status.m_result).c_str());
-  LOG_INFO("Tuple inserted to table_b!");
+  LOG_INFO("Tuple inserted to b!");
   traffic_cop.CommitQueryHelper();
 
-  // Inserting a tuple to table_c
+  // Inserting a tuple to c
   txn = txn_manager.BeginTransaction();
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Inserting a tuple...");
-  LOG_INFO("Query: INSERT INTO table_c(cid, value) VALUES (1,2);");
+  LOG_INFO("Query: INSERT INTO c(cid, value) VALUES (1,2);");
   statement.reset(new Statement(
-      "INSERT", "INSERT INTO table_c(cid, value) VALUES (1, 2);"));
+      "INSERT", "INSERT INTO c(cid, value) VALUES (1, 2);"));
 
   insert_stmt = peloton_parser.BuildParseTree(
-      "INSERT INTO table_c(cid, value) VALUES (1, 2);");
+      "INSERT INTO c(cid, value) VALUES (1, 2);");
   bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(insert_stmt->GetStatement(0));
 
@@ -290,18 +290,18 @@ TEST_F(OptimizerTests, HashJoinTest) {
   }
   LOG_INFO("Statement executed. Result: %s",
            ResultTypeToString(status.m_result).c_str());
-  LOG_INFO("Tuple inserted to table_c!");
+  LOG_INFO("Tuple inserted to c!");
   traffic_cop.CommitQueryHelper();
 
   txn = txn_manager.BeginTransaction();
   traffic_cop.SetTcopTxnState(txn);
   LOG_INFO("Join ...");
-  LOG_INFO("Query: SELECT * FROM table_a, table_b, table_c where aid = bid and aid = cid;");
+  LOG_INFO("Query: SELECT * FROM a, b, c where aid = bid and aid = cid;");
   statement.reset(new Statement(
-      "SELECT", "SELECT * FROM table_a, table_b, table_c where aid = bid and aid = cid;"));
+      "SELECT", "SELECT * FROM a, b, c where aid = bid and aid = cid;"));
 
   auto select_stmt = peloton_parser.BuildParseTree(
-      "SELECT * FROM table_a, table_b, table_c where aid = bid and aid = cid;");
+      "SELECT * FROM a, b, c where aid = bid and aid = cid;");
   bind_node_visitor = binder::BindNodeVisitor(txn, DEFAULT_DB_NAME);
   bind_node_visitor.BindNameToNode(select_stmt->GetStatement(0));
 
