@@ -100,7 +100,7 @@ void Optimizer::OptimizeLoop(int root_group_id,
 
   // Perform optimization after the rewrite
   task_stack->Push(new OptimizeGroup(metadata_.memo.GetGroupByID(root_group_id),
-                                     root_context));
+                                     root_context, -1));
 
   // Derive stats for the only one logical expression before optimizing
   task_stack->Push(new DeriveStats(

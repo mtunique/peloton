@@ -23,8 +23,8 @@ namespace optimizer {
 
 class GroupExpression;
 
-#define PHYS_PROMISE 3
-#define LOG_PROMISE 1
+#define PHYS_PROMISE 1
+#define LOG_PROMISE 3
 
 /**
  * @brief The base class of all rules

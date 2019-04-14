@@ -50,6 +50,8 @@ enum class OptimizerTaskType {
   BOTTOM_UP_REWRITE
 };
 
+static volatile int TASK_INDEX = 0;
+
 /**
  * @brief The base class for tasks in the optimizer
  */
@@ -57,7 +59,16 @@ class OptimizerTask {
  public:
   OptimizerTask(std::shared_ptr<OptimizeContext> context,
                 OptimizerTaskType type)
-      : type_(type), context_(context) {}
+      : type_(type), context_(context) {
+    task_id_ = TASK_INDEX++;
+    from_task_id_ = task_id_;
+  }
+
+  OptimizerTask(std::shared_ptr<OptimizeContext> context,
+                OptimizerTaskType type, int from_id_)
+      : type_(type), context_(context), from_task_id_(from_id_) {
+    task_id_ = TASK_INDEX++;
+  }
 
   /**
    * @brief Construct valid rules with their promises for a group expression,
@@ -86,9 +97,19 @@ class OptimizerTask {
 
   virtual ~OptimizerTask(){};
 
+  inline int GetFromId() {
+    return from_task_id_;
+  }
+
+  inline int GetId() {
+    return task_id_;
+  }
+
  protected:
   OptimizerTaskType type_;
   std::shared_ptr<OptimizeContext> context_;
+  int from_task_id_;
+  int task_id_;
 };
 
 /**
@@ -98,8 +119,8 @@ class OptimizerTask {
  */
 class OptimizeGroup : public OptimizerTask {
  public:
-  OptimizeGroup(Group *group, std::shared_ptr<OptimizeContext> context)
-      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_GROUP),
+  OptimizeGroup(Group *group, std::shared_ptr<OptimizeContext> context, int from_id)
+      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_GROUP, from_id),
         group_(group) {}
   virtual void execute() override;
 
@@ -117,8 +138,8 @@ class OptimizeGroup : public OptimizerTask {
 class OptimizeExpression : public OptimizerTask {
  public:
   OptimizeExpression(GroupExpression *group_expr,
-                     std::shared_ptr<OptimizeContext> context)
-      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_EXPR),
+                     std::shared_ptr<OptimizeContext> context, int from_id)
+      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_EXPR, from_id),
         group_expr_(group_expr) {}
   virtual void execute() override;
 
@@ -132,8 +153,8 @@ class OptimizeExpression : public OptimizerTask {
  */
 class ExploreGroup : public OptimizerTask {
  public:
-  ExploreGroup(Group *group, std::shared_ptr<OptimizeContext> context)
-      : OptimizerTask(context, OptimizerTaskType::EXPLORE_GROUP),
+  ExploreGroup(Group *group, std::shared_ptr<OptimizeContext> context, int from_id)
+      : OptimizerTask(context, OptimizerTaskType::EXPLORE_GROUP, from_id),
         group_(group) {}
   virtual void execute() override;
 
@@ -149,8 +170,8 @@ class ExploreGroup : public OptimizerTask {
 class ExploreExpression : public OptimizerTask {
  public:
   ExploreExpression(GroupExpression *group_expr,
-                    std::shared_ptr<OptimizeContext> context)
-      : OptimizerTask(context, OptimizerTaskType::EXPLORE_EXPR),
+                    std::shared_ptr<OptimizeContext> context, int from_id)
+      : OptimizerTask(context, OptimizerTaskType::EXPLORE_EXPR, from_id),
         group_expr_(group_expr) {}
   virtual void execute() override;
 
@@ -167,8 +188,8 @@ class ExploreExpression : public OptimizerTask {
 class ApplyRule : public OptimizerTask {
  public:
   ApplyRule(GroupExpression *group_expr, Rule *rule,
-            std::shared_ptr<OptimizeContext> context, bool explore = false)
-      : OptimizerTask(context, OptimizerTaskType::APPLY_RULE),
+            std::shared_ptr<OptimizeContext> context, int from_id, bool explore = false)
+      : OptimizerTask(context, OptimizerTaskType::APPLY_RULE, from_id),
         group_expr_(group_expr),
         rule_(rule),
         explore_only(explore) {}
@@ -190,8 +211,8 @@ class ApplyRule : public OptimizerTask {
 class OptimizeInputs : public OptimizerTask {
  public:
   OptimizeInputs(GroupExpression *group_expr,
-                 std::shared_ptr<OptimizeContext> context)
-      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_INPUTS),
+                 std::shared_ptr<OptimizeContext> context, int from_id)
+      : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_INPUTS, from_id),
         group_expr_(group_expr) {}
 
   OptimizeInputs(OptimizeInputs *task)

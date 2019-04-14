@@ -59,6 +59,7 @@ RuleSet &OptimizerTask::GetRuleSet() const {
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::execute() {
+  LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
   LOG_DEBUG("OptimizeGroup::Execute() group %d info %s", group_->GetID(), group_->GetInfo().c_str());
   if (group_->GetCostLB() > context_->cost_upper_bound ||  // Cost LB > Cost UB
       group_->GetBestExpression(context_->required_prop) !=
@@ -69,12 +70,12 @@ void OptimizeGroup::execute() {
   // explored
   if (!group_->HasExplored()) {
     for (auto &logical_expr : group_->GetLogicalExpressions())
-      PushTask(new OptimizeExpression(logical_expr.get(), context_));
+      PushTask(new OptimizeExpression(logical_expr.get(), context_, this->GetId()));
   }
 
   // Push implement tasks to ensure that they are run first (for early pruning)
   for (auto &physical_expr : group_->GetPhysicalExpressions()) {
-    PushTask(new OptimizeInputs(physical_expr.get(), context_));
+    PushTask(new OptimizeInputs(physical_expr.get(), context_, this->GetId()));
   }
 
   // Since there is no cycle in the tree, it is safe to set the flag even before
@@ -86,6 +87,7 @@ void OptimizeGroup::execute() {
 // OptimizeExpression
 //===--------------------------------------------------------------------===//
 void OptimizeExpression::execute() {
+  LOG_DEBUG("id: %d from_id: %d\n", this->GetId(), this->GetFromId());
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -100,7 +102,7 @@ void OptimizeExpression::execute() {
             group_expr_->GetInfo().c_str(), group_expr_->Op().GetName().c_str(), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
-    PushTask(new ApplyRule(group_expr_, r.rule, context_));
+    PushTask(new ApplyRule(group_expr_, r.rule, context_, this->GetId()));
     int child_group_idx = 0;
     for (auto &child_pattern : r.rule->GetMatchPattern()->Children()) {
       // Only need to explore non-leaf children before applying rule to the
@@ -110,7 +112,7 @@ void OptimizeExpression::execute() {
         PushTask(new ExploreGroup(
             GetMemo().GetGroupByID(
                 group_expr_->GetChildGroupIDs()[child_group_idx]),
-            context_));
+            context_, this->GetId()));
       }
       child_group_idx++;
     }
@@ -122,10 +124,11 @@ void OptimizeExpression::execute() {
 //===--------------------------------------------------------------------===//
 void ExploreGroup::execute() {
   if (group_->HasExplored()) return;
+  LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
   LOG_DEBUG("ExploreGroup::execute() group %s", group_->GetInfo().c_str());
 
   for (auto &logical_expr : group_->GetLogicalExpressions()) {
-    PushTask(new ExploreExpression(logical_expr.get(), context_));
+    PushTask(new ExploreExpression(logical_expr.get(), context_, this->GetId()));
   }
 
   // Since there is no cycle in the tree, it is safe to set the flag even before
@@ -137,6 +140,7 @@ void ExploreGroup::execute() {
 // ExploreExpression
 //===--------------------------------------------------------------------===//
 void ExploreExpression::execute() {
+  LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
   LOG_DEBUG("ExploreExpression::execute() gexpr %s", group_expr_->GetInfo().c_str());
   std::vector<RuleWithPromise> valid_rules;
 
@@ -158,7 +162,7 @@ void ExploreExpression::execute() {
         PushTask(new ExploreGroup(
             GetMemo().GetGroupByID(
                 group_expr_->GetChildGroupIDs()[child_group_idx]),
-            context_));
+            context_, this->GetId()));
       }
       child_group_idx++;
     }
@@ -169,7 +173,8 @@ void ExploreExpression::execute() {
 // ApplyRule
 //===--------------------------------------------------------------------===//
 void ApplyRule::execute() {
-  LOG_DEBUG("ApplyRule::execute() gexpr %s for rule: %s", group_expr_->GetInfo().c_str(), RULE_TYPES[rule_->GetRuleIdx()].c_str());
+  LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
+  LOG_DEBUG("ApplyRule::execute() gexpr %s for rule: %s\n", group_expr_->GetInfo().c_str(), RULE_TYPES[rule_->GetRuleIdx()].c_str());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
   GroupExprBindingIterator iterator(GetMemo(), group_expr_,
@@ -192,14 +197,14 @@ void ApplyRule::execute() {
           PushTask(new DeriveStats(new_gexpr.get(), ExprSet{}, context_));
           if (explore_only) {
             // Explore this logical expression
-            PushTask(new ExploreExpression(new_gexpr.get(), context_));
+            PushTask(new ExploreExpression(new_gexpr.get(), context_, this->GetId()));
           } else {
             // Optimize this logical expression
-            PushTask(new OptimizeExpression(new_gexpr.get(), context_));
+            PushTask(new OptimizeExpression(new_gexpr.get(), context_, this->GetId()));
           }
         } else {
           // Cost this physical expression and optimize its inputs
-          PushTask(new OptimizeInputs(new_gexpr.get(), context_));
+          PushTask(new OptimizeInputs(new_gexpr.get(), context_, this->GetId()));
         }
       }
     }
@@ -260,6 +265,7 @@ void DeriveStats::execute() {
 //===--------------------------------------------------------------------===//
 void OptimizeInputs::execute() {
   // Init logic: only run once per task
+  LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
   LOG_DEBUG("OptimizeInputs::execute() gexpr %s", group_expr_->GetInfo().c_str());
   if (cur_child_idx_ == -1) {
     // TODO(patrick):
@@ -316,7 +322,7 @@ void OptimizeInputs::execute() {
         PushTask(new OptimizeInputs(this));
         PushTask(new OptimizeGroup(
             child_group, std::make_shared<OptimizeContext>(
-                context_->metadata, i_prop, context_->cost_upper_bound - cur_total_cost_)));
+                context_->metadata, i_prop, context_->cost_upper_bound - cur_total_cost_), this->GetId()));
         return;
       } else {  // If we return from OptimizeGroup, then there is no expr for
                 // the context
