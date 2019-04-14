@@ -87,7 +87,7 @@ void OptimizeGroup::execute() {
 // OptimizeExpression
 //===--------------------------------------------------------------------===//
 void OptimizeExpression::execute() {
-  LOG_DEBUG("id: %d from_id: %d\n", this->GetId(), this->GetFromId());
+  LOG_DEBUG("id: %d from_id: %d", this->GetId(), this->GetFromId());
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
